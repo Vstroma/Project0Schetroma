@@ -18,14 +18,14 @@ int main(int argc, char **argv)
 
     const char *dest = argv[argc - 1];		// destination file pointer
 
-   				// command line arguments
+   				// parse through command line arguments
     for (int i = 1; i < argc - 1; i++) {
 
         struct stat srcStat;
 			
         if (stat(argv[i], &srcStat) == -1) {
 
-            perror("Error getting source file/directory information");
+            perror("Error getting source file/directory information");		// error with file or directory
             continue;
         }
 
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
             						// copy file to destination 
             copyFile(argv[i], dest);
         }
-        else if (S_ISDIR(srcStat.st_mode))      {	// copy contents of source directory to destination
+        else if (S_ISDIR(srcStat.st_mode))      {	// copy contents of source to directory
 						
             copyToDir(argv[i], dest);
         }
@@ -47,11 +47,11 @@ int main(int argc, char **argv)
 
 void copyFile(const char *source, const char *destination)
 {
-    // Check if destFileName is a directory
+    			//checks if destination is a directory
     struct stat destStat;
     if (stat(destination, &destStat) == 0 && S_ISDIR(destStat.st_mode))		{
 
-        // if destination is a directory, create the path within that directory
+        								// if destination is a directory create a path
 
         char *srcBaseName = strrchr(source, '/');
         if (srcBaseName == NULL)    {
@@ -62,31 +62,31 @@ void copyFile(const char *source, const char *destination)
             srcBaseName++; // Skip the slash
         }
 
-        char destFilePath[strlen(destination) + strlen(srcBaseName) + 2];		
-        snprintf(destFilePath, sizeof(destFilePath), "%s/%s", destination, srcBaseName);
+        char destFilePath[strlen(destination) + strlen(srcBaseName) + 2];		//allocates length for destfilepath
+        snprintf(destFilePath, sizeof(destFilePath), "%s/%s", destination, srcBaseName);	// redirects into buffer
 
-        // Open the destination file for writing
-        FILE *destFile = fopen(destFilePath, "wb");
+        								
+        FILE *destFile = fopen(destFilePath, "wb");			// open destination file for writing 
         if (destFile == NULL)	{
 
             perror("Error opening/creating destination file");
             return;
         }
 
-        // Open the source file for reading
-        FILE *srcFile = fopen(source, "rb");
+        								
+        FILE *srcFile = fopen(source, "rb");				// open source to read
         if (srcFile == NULL)	{
 
             perror("Error opening source file");
             fclose(destFile);
             return;
         }
-
-        char buffer[1024];
+	
+        char buffer[1024];			// initialize buffer
         size_t bytesRead;
 
-        // Copy data from source to destination
-        while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0)	{
+       											
+        while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0)	{		// copy from source to destnationfile
 
             fwrite(buffer, 1, bytesRead, destFile);
         }
@@ -95,7 +95,7 @@ void copyFile(const char *source, const char *destination)
         fclose(destFile);
     }
 
-    else 	{
+    else 	{				// if destination is a file 
      
         FILE *srcFile = fopen(source, "rb");		//open source file
         if (srcFile == NULL)	{
@@ -104,23 +104,23 @@ void copyFile(const char *source, const char *destination)
             exit(1);
         }
 
-        // Open or create the destination file for writing
-        FILE *destFile = fopen(destination, "wb");
+        						
+        FILE *destFile = fopen(destination, "wb");				// open or make destination file for writing
         if (destFile == NULL)	{
 
-            // Attempt to create the destination file if it doesn't exist
-            destFile = fopen(destination, "wb");
+           							
+            destFile = fopen(destination, "wb");			// create destination file if DNE
             if (destFile == NULL)	{
                 perror("Error opening/creating destination file");
                 fclose(srcFile);
                 exit(1);
             }
         }
-        char buffer[1024];
+        char buffer[1024];				// initialize buffer
         size_t bytesRead;
 
-        // Copy data from source to destination
-        while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0)	{
+ 											
+        while ((bytesRead = fread(buffer, 1, sizeof(buffer), srcFile)) > 0)	{		// copy from source to destination
 
             fwrite(buffer, 1, bytesRead, destFile);
         }
@@ -132,8 +132,8 @@ void copyFile(const char *source, const char *destination)
 
 void copyToDir(const char *sourceName, const char *destinationDir)
 {
-    // Open the source directory
-    DIR *srcDir = opendir(sourceName);
+    							
+    DIR *srcDir = opendir(sourceName);				// source directory
     if (srcDir == NULL)		{
         perror("Error opening source directory");
         return;
@@ -141,8 +141,8 @@ void copyToDir(const char *sourceName, const char *destinationDir)
 
     struct dirent *entry;
 
-    // Traverse the source directory
-    while ((entry = readdir(srcDir)))	{
+   						
+    while ((entry = readdir(srcDir)))	{			// read source directory
 
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)	{	//skip dot entries
 
@@ -152,24 +152,24 @@ void copyToDir(const char *sourceName, const char *destinationDir)
         char srcPath[strlen(sourceName) + strlen(entry->d_name) + 2];		// path lengths
         char destPath[strlen(destinationDir) + strlen(entry->d_name) + 2];
 
-        snprintf(srcPath, sizeof(srcPath), "%s/%s", sourceName, entry->d_name);
+        snprintf(srcPath, sizeof(srcPath), "%s/%s", sourceName, entry->d_name);			//redirect to buffer
         snprintf(destPath, sizeof(destPath), "%s/%s", destinationDir, entry->d_name);
 
         struct stat statbuf;
         if (stat(srcPath, &statbuf) == -1)	{
 
-            perror("Error getting file/directory information");
+            perror("Could not get file information");			// throw error
             continue;
         }
 
-        if (S_ISDIR(statbuf.st_mode))	{
-
-            // Recursively copy directories
+        if (S_ISDIR(statbuf.st_mode))	{	// recursively copy 
+						
+          	
             copyToDir(srcPath, destPath);
         }
-        else if (S_ISREG(statbuf.st_mode))	{
+        else if (S_ISREG(statbuf.st_mode))	{	// copy files to destination 
 
-            // Copy regular files
+            						
             copyFile(srcPath, destPath);
         }
     }
